@@ -19,7 +19,7 @@ class NodeConfigSidebar:
         self.node_editor.canvas.pack(fill=tk.BOTH, expand=True)
         
         # Create the sidebar (right side)
-        self.sidebar = tk.Frame(self.main_frame, width=250, bg='#2C2C2C', padx=10, pady=10)
+        self.sidebar = tk.Frame(self.main_frame, width=350, bg='#2C2C2C', padx=10, pady=10)
         self.sidebar.pack(side=tk.RIGHT, fill=tk.Y)
         self.sidebar.pack_propagate(False)
 
@@ -40,6 +40,7 @@ class NodeConfigSidebar:
         tk.Label(self.config_frame, text=f"Config for {node.title}", fg='white', bg='#2C2C2C', font=('Arial', 12, 'bold')).pack(pady=(0, 10))
 
         for attr, value in node.get_config_options().items():
+
             print(f"Adding config option: {attr} = {value}")  # Debug print
             frame = tk.Frame(self.config_frame, bg='#2C2C2C')
             frame.pack(fill=tk.X, pady=5)
@@ -47,6 +48,12 @@ class NodeConfigSidebar:
             label = tk.Label(frame, text=attr.replace('_', ' ').title() + ':', fg='white', bg='#2C2C2C')
             label.pack(side=tk.LEFT)
 
+            if attr == 'scale':
+                entry = tk.Entry(frame)
+                entry.insert(0, str(value))
+                entry.pack(side=tk.RIGHT)
+                entry.bind('<Return>', lambda e, a=attr, w=entry: self.update_config(a, w.get()))
+                
             if isinstance(value, bool):
                 var = tk.BooleanVar(value=value)
                 widget = ttk.Checkbutton(frame, variable=var, command=lambda a=attr, v=var: self.update_config(a, v.get()))

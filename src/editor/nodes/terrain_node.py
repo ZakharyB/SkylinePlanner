@@ -1,15 +1,16 @@
 from src.editor.node import Node
 from src.terrain.heightmap_generator import generate_heightmap
+from src.utils.math_utils import perlin
 import numpy as np
 
 class TerrainNode(Node):
     def __init__(self):
-        super().__init__("Terrain", outputs=["heightmap"])
+        super().__init__(inputs=[], outputs=['heightmap'])
         self.config = {
             'width': 256,
             'height': 256,
-            'roughness': 0.5,
-            'seed': 42
+            'scale': 50,  # Add this line
+            'seed': 0
         }
 
     def get_config_options(self):
@@ -20,14 +21,12 @@ class TerrainNode(Node):
         self.process()
 
     def process(self):
-        heightmap = generate_heightmap(
-            self.config['width'],
-            self.config['height'],
-            roughness=self.config['roughness'],
-            seed=self.config['seed']
-        )
-        return {"heightmap": heightmap}
-    
+        heightmap = np.zeros((self.config['height'], self.config['width']))
+        for y in range(self.config['height']):
+            for x in range(self.config['width']):
+                heightmap[y, x] = perlin(x / self.config['scale'], y / self.config['scale'], self.config['seed'])
+        self.output_data['heightmap'] = heightmap
+
 if __name__ == "__main__":
     node = TerrainNode()
     result = node.process()
