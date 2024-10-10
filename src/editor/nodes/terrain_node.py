@@ -5,11 +5,27 @@ import numpy as np
 class TerrainNode(Node):
     def __init__(self):
         super().__init__("Terrain", outputs=["heightmap"])
-        self.width = 256
-        self.height = 256
+        self.config = {
+            'width': 256,
+            'height': 256,
+            'roughness': 0.5,
+            'seed': 42
+        }
+
+    def get_config_options(self):
+        return self.config
+    
+    def update_config(self, new_config):
+        self.config.update(new_config)
+        self.process()
 
     def process(self):
-        heightmap = generate_heightmap(self.width, self.height)
+        heightmap = generate_heightmap(
+            self.config['width'],
+            self.config['height'],
+            roughness=self.config['roughness'],
+            seed=self.config['seed']
+        )
         return {"heightmap": heightmap}
     
 if __name__ == "__main__":
