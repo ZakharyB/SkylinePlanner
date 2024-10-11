@@ -6,15 +6,12 @@ class NodeConfigSidebar:
         self.master = master
         self.node_editor = node_editor
         
-        # Create a frame for the entire application
         self.main_frame = tk.Frame(master)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Create a frame for the node editor (left side)
         self.editor_frame = tk.Frame(self.main_frame)
         self.editor_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        # Move the node editor canvas to this frame
         self.node_editor.canvas.master = self.editor_frame
         self.node_editor.canvas.pack(fill=tk.BOTH, expand=True)
         
@@ -53,7 +50,7 @@ class NodeConfigSidebar:
                 entry.insert(0, str(value))
                 entry.pack(side=tk.RIGHT)
                 entry.bind('<Return>', lambda e, a=attr, w=entry: self.update_config(a, w.get()))
-                
+
             if isinstance(value, bool):
                 var = tk.BooleanVar(value=value)
                 widget = ttk.Checkbutton(frame, variable=var, command=lambda a=attr, v=var: self.update_config(a, v.get()))

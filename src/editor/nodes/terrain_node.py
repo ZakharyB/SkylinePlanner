@@ -4,12 +4,12 @@ from src.utils.math_utils import perlin
 import numpy as np
 
 class TerrainNode(Node):
-    def __init__(self):
-        super().__init__(inputs=[], outputs=['heightmap'])
+    def __init__(self, title):
+        super().__init__(title, inputs=[], outputs=['heightmap'])
         self.config = {
             'width': 256,
             'height': 256,
-            'scale': 50,  # Add this line
+            'scale': 50,  
             'seed': 0
         }
 
