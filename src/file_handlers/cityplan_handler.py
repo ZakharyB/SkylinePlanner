@@ -5,6 +5,10 @@ import json
 
 class CityPlanHandler:
     def __init__(self, key=None):
+        self.key = self._get_or_generate_key(key)
+        self.cipher_suite = Fernet(self.key)
+
+    def _get_or_generate_key(self, key):
         if key is None:
             key = os.environ.get('CITYPLAN_KEY')
             if key is None:
@@ -14,19 +18,14 @@ class CityPlanHandler:
                 key = self.ensure_valid_key(key)
         else:
             key = self.ensure_valid_key(key)
-        
-        self.key = key
-        self.cipher_suite = Fernet(self.key)
+        return key
 
     def ensure_valid_key(self, key):
         if isinstance(key, str):
             key = key.encode()
         if len(key) != 32:
             raise ValueError("Key must be 32 bytes long")
-        try:
-            return base64.urlsafe_b64encode(key)
-        except:
-            raise ValueError("Key must be valid for base64 encoding")
+        return base64.urlsafe_b64encode(key)
 
     def save(self, data, filename):
         json_data = json.dumps(data)

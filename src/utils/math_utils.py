@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def perlin(x, y, seed=0):
     """Generate a Perlin noise value for given coordinates."""
     np.random.seed(seed)
