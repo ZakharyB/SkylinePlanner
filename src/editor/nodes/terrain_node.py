@@ -1,34 +1,53 @@
-from src.editor.node import Node
-from src.terrain.heightmap_generator import generate_heightmap
-from src.utils.math_utils import perlin
+from dataclasses import dataclass, asdict
+from typing import Dict, Any
+
 import numpy as np
 
-class TerrainNode(Node):
-    def __init__(self, title):
-        super().__init__(title, inputs=[], outputs=['heightmap'])
-        self.config = {
-            'width': 256,
-            'height': 256,
-            'scale': 50,  
-            'seed': 0
-        }
+from src.editor.node import Node
+from src.utils.math_utils import perlin
 
-    def get_config_options(self):
-        return self.config
+@dataclass
+class TerrainConfig:
+    width: int = 256
+    height: int = 256
+    scale: float = 50.0
+    seed: int = 0
+
+class TerrainNode(Node):
+    def __init__(self, title: str):
+        super().__init__(title, inputs=[], outputs=['heightmap'])
+        self.config = TerrainConfig()
+
+    def get_config_options(self) -> Dict[str, Any]:
+        return asdict(self.config)
     
-    def update_config(self, new_config):
-        self.config.update(new_config)
+    def update_config(self, new_config: Dict[str, Any]) -> None:
+        for key, value in new_config.items():
+            if hasattr(self.config, key):
+                setattr(self.config, key, value)
+            else:
+                raise ValueError(f"Invalid configuration option: {key}")
         self.process()
 
-    def process(self):
-        heightmap = np.zeros((self.config['height'], self.config['width']))
-        for y in range(self.config['height']):
-            for x in range(self.config['width']):
-                heightmap[y, x] = perlin(x / self.config['scale'], y / self.config['scale'], self.config['seed'])
+    def process(self) -> None:
+        if self.config.width <= 0 or self.config.height <= 0:
+            raise ValueError("Width and height must be positive integers")
+        if self.config.scale <= 0:
+            raise ValueError("Scale must be a positive number")
+
+        x = np.arange(self.config.width) / self.config.scale
+        y = np.arange(self.config.height) / self.config.scale
+        xx, yy = np.meshgrid(x, y)
+        
+        heightmap = perlin(xx, yy, self.config.seed)
         self.output_data['heightmap'] = heightmap
 
+def main() -> None:
+    node = TerrainNode("Terrain Generator")
+    node.process()
+    result = node.output_data['heightmap']
+    print(f"Heightmap shape: {result.shape}")
+    print(f"Heightmap min: {np.min(result)}, max: {np.max(result)}")
+
 if __name__ == "__main__":
-    node = TerrainNode()
-    result = node.process()
-    print(f"Heightmap shape: {result['heightmap'].shape}")
-    print(f"Heightmap min: {np.min(result['heightmap'])}, max: {np.max(result['heightmap'])}")
+    main()
