@@ -63,7 +63,6 @@ class NodeEditor:
         port_id = node.input_ids[index] if port_type.startswith('input') else node.output_ids[index]
         return self.canvas.coords(port_id)
 
- 
     def clear_all(self):
         self.canvas.delete("all")
         self.nodes = []
@@ -270,33 +269,41 @@ class NodeEditor:
     def on_click(self, event):
         canvas_x = self.canvas.canvasx(event.x)
         canvas_y = self.canvas.canvasy(event.y)
-        item = self.canvas.find_closest(canvas_x, canvas_y)[0]
-        tags = self.canvas.gettags(item)
+        items = self.canvas.find_overlapping(canvas_x-5, canvas_y-5, canvas_x+5, canvas_y+5)
         
         if not self.connecting:
             self.select_node(event)
 
-        if 'port' in tags:
-            port_type = next((tag for tag in tags if tag.startswith('input_') or tag.startswith('output_')), None)
-            if port_type:
-                if port_type.startswith('output_'):
-                    self.connecting = True
-                    self.connection_start = (item, tags[0], port_type)
-                else:
-                    connected_output = self.find_connected_output(item)
-                    if connected_output:
+        for item in items:
+            tags = self.canvas.gettags(item)
+            if 'port' in tags:
+                port_type = next((tag for tag in tags if tag.startswith('input_') or tag.startswith('output_')), None)
+                if port_type:
+                    if port_type.startswith('output_'):
                         self.connecting = True
-                        self.connection_start = connected_output
-                        self.remove_connection_to_input(item)
-        elif 'node' in tags:
-            for node in self.nodes:
-                if node.title in tags:
-                    self.select_node(event)
-                    self.dragging = True
-                    self.dragged_node = node
-                    self.drag_start = (canvas_x, canvas_y)
-        else:
-            self.select_node(event)
+                        self.connection_start = (item, tags[0], port_type)
+                        break
+                    else:
+                        connected_output = self.find_connected_output(item)
+                        if connected_output:
+                            self.connecting = True
+                            self.connection_start = connected_output
+                            self.remove_connection_to_input(item)
+                        break
+        
+        if not self.connecting:
+            for item in items:
+                tags = self.canvas.gettags(item)
+                if 'node' in tags:
+                    for node in self.nodes:
+                        if node.title in tags:
+                            self.select_node(event)
+                            self.dragging = True
+                            self.dragged_node = node
+                            self.drag_start = (canvas_x, canvas_y)
+                            break
+                    break
+
 
     def select_node(self, event):
         canvas_x = self.canvas.canvasx(event.x)
@@ -368,9 +375,6 @@ class NodeEditor:
             self.update_connections_for_node(self.dragged_node)
         elif self.connecting:
             self.update_connection_preview(canvas_x, canvas_y)
-
-
-            
 
     def update_connections_for_node(self, node):
         for connection in self.connections:
@@ -570,11 +574,18 @@ class NodeEditor:
         return None
 
     def draw_grid(self):
+        self.canvas.delete('grid')  # Remove old grid
         grid_size = 20
-        for x in range(0, self.canvas.winfo_width(), grid_size):
-            self.canvas.create_line(x, 0, x, self.canvas.winfo_height(), fill="#3A3A3A")
-        for y in range(0, self.canvas.winfo_height(), grid_size):
-            self.canvas.create_line(0, y, self.canvas.winfo_width(), y, fill="#3A3A3A")
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+        
+        for x in range(0, canvas_width, grid_size):
+            self.canvas.create_line(x, 0, x, canvas_height, fill="#3A3A3A", tags='grid')
+        for y in range(0, canvas_height, grid_size):
+            self.canvas.create_line(0, y, canvas_width, y, fill="#3A3A3A", tags='grid')
+        
+        self.canvas.tag_lower('grid')  # Move grid to the back
+
 
     def create_minimap(self):
         self.minimap = tk.Canvas(self.master, width=150, height=150, bg='#1E1E1E')
@@ -676,15 +687,37 @@ class NodeEditor:
 
         return sorted_nodes
 
+    def check_all_nodes_connected(self):
+        # Check if all required connections are made
+        required_nodes = [TerrainNode, WaterNode, RoadNode, ZoningNode, CityNode]
+        node_types = set(type(node) for node in self.nodes)
+        
+        if not all(required_node in node_types for required_node in required_nodes):
+            return False
+        
+        # Check if nodes are connected in the correct order
+        for i in range(len(required_nodes) - 1):
+            if not any(isinstance(conn.output_node, required_nodes[i]) and isinstance(conn.input_node, required_nodes[i+1]) for conn in self.connections):
+                return False
+        
+        return True
+
     def generate_city(self):
-        try:
-            self.process_nodes()
-            city_node = next((node for node in self.nodes if isinstance(node, CityNode)), None)
-            if city_node and 'city_data' in city_node.output_data:
-                city_data = city_node.output_data['city_data']
-                from src.visualization.city_visualizer import CityVisualizer
-                CityVisualizer.visualize_city(city_data)
-            else:
-                print("City data not found. Make sure you have a City node connected properly.")
-        except Exception as e:
-            print(f"An error occurred while generating the city: {str(e)}")
+        # Find the CityNode
+        city_node = next(node for node in self.nodes if isinstance(node, CityNode))
+        
+        # Process nodes in order
+        for node_type in [TerrainNode, WaterNode, RoadNode, ZoningNode]:
+            node = next(node for node in self.nodes if isinstance(node, node_type))
+            node.process()
+        
+        # Generate the final city
+        city_node.process()
+        
+        # Display or save the generated city
+        self.display_generated_city(city_node.output_data)
+
+
+    def display_generated_city(self, city_data):
+
+        pass
